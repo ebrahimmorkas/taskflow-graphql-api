@@ -39,3 +39,18 @@ export async function gql<T = Record<string, any>>(
 }
 
 export const errorCode = (res: GqlResponse) => res.errors?.[0]?.extensions?.code;
+
+let userCounter = 0;
+
+/** Signs up a fresh user and returns their id and token. */
+export async function signUp(app: INestApplication, name?: string) {
+  userCounter += 1;
+  const email = `${name ?? 'user'}-${Date.now()}-${userCounter}@test.dev`.toLowerCase();
+  const res = await gql<{ signUp: { token: string; user: { id: string; email: string } } }>(
+    app,
+    `mutation ($input: SignUpInput!) { signUp(input: $input) { token user { id email } } }`,
+    { input: { email, name: name ?? 'Test User', password: 'Password123' } },
+  );
+  if (!res.data) throw new Error(JSON.stringify(res.errors));
+  return { ...res.data.signUp.user, token: res.data.signUp.token };
+}
