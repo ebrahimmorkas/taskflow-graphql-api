@@ -1,17 +1,49 @@
-import { Args, ID, Mutation, Parent, Query, ResolveField, Resolver } from '@nestjs/graphql';
+import { Inject } from '@nestjs/common';
+import {
+  Args,
+  ID,
+  Mutation,
+  Parent,
+  Query,
+  ResolveField,
+  Resolver,
+  Subscription,
+} from '@nestjs/graphql';
 import { CurrentUser, type AuthUser } from '../auth/auth.decorators.js';
-import { Loaders } from '../common/loaders.js';
+import { Loaders, refreshLoaders } from '../common/loaders.js';
 import { Project } from '../projects/project.entity.js';
+import { ProjectsService } from '../projects/projects.service.js';
+import { PUB_SUB, type PubSubPort } from '../pubsub/pubsub.module.js';
 import { User } from '../users/user.entity.js';
 import { Activity } from './activity.entity.js';
 import { TaskConnection } from './dto/task.connection.js';
 import { CreateTaskInput, PageArgs, TaskFilter, UpdateTaskInput } from './dto/task.inputs.js';
+import { TaskChangedEvent, taskChangedTrigger } from './task-events.js';
 import { Task } from './task.entity.js';
 import { TasksService } from './tasks.service.js';
 
 @Resolver(() => Task)
 export class TasksResolver {
-  constructor(private readonly tasksService: TasksService) {}
+  constructor(
+    private readonly tasksService: TasksService,
+    private readonly projectsService: ProjectsService,
+    @Inject(PUB_SUB) private readonly pubSub: PubSubPort,
+  ) {}
+
+  /** Live task changes for a project. Access is checked once, when the subscription starts. */
+  @Subscription(() => TaskChangedEvent, {
+    resolve: (payload: { taskChanged: TaskChangedEvent }, _args: unknown, ctx: object) => {
+      refreshLoaders(ctx);
+      return payload.taskChanged;
+    },
+  })
+  async taskChanged(
+    @CurrentUser() user: AuthUser,
+    @Args('projectId', { type: () => ID }) projectId: string,
+  ) {
+    await this.projectsService.requireProject(user.id, projectId);
+    return this.pubSub.asyncIterableIterator<TaskChangedEvent>(taskChangedTrigger(projectId));
+  }
 
   @Query(() => TaskConnection, { description: 'Tasks in a project, newest first' })
   tasks(

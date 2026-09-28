@@ -29,6 +29,15 @@ export function createLoaders(dataSource: DataSource) {
 
 export type Loaders = ReturnType<typeof createLoaders>;
 
+/**
+ * Subscription contexts live as long as the subscription, so cached entities
+ * would go stale between events. Clear them before resolving each event.
+ */
+export function refreshLoaders(ctx: object) {
+  const loaders = (ctx as { loaders?: Loaders }).loaders;
+  for (const loader of Object.values(loaders ?? {})) loader.clearAll();
+}
+
 export const Loaders = createParamDecorator(
   (_data: unknown, context: ExecutionContext): Loaders =>
     GqlExecutionContext.create(context).getContext().loaders,

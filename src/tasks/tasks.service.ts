@@ -1,15 +1,17 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { isUUID } from 'class-validator';
 import { DataSource, type Repository } from 'typeorm';
 import { BadInput, Conflict, Forbidden, NotFound } from '../common/errors.js';
 import { Project } from '../projects/project.entity.js';
 import { ProjectsService } from '../projects/projects.service.js';
+import { PUB_SUB, type PubSubPort } from '../pubsub/pubsub.module.js';
 import { WorkspaceAccessService } from '../workspaces/workspace-access.service.js';
 import { hasRole, WorkspaceRole } from '../workspaces/workspace-role.enum.js';
 import { Activity, type FieldChange } from './activity.entity.js';
 import { decodeCursor, encodeCursor, type TaskConnection } from './dto/task.connection.js';
 import type { CreateTaskInput, PageArgs, TaskFilter, UpdateTaskInput } from './dto/task.inputs.js';
+import { TaskEventType, taskChangedTrigger, type TaskChangedEvent } from './task-events.js';
 import { ActivityType, TaskPriority, TaskStatus } from './task.enums.js';
 import { Task } from './task.entity.js';
 
@@ -30,7 +32,20 @@ export class TasksService {
     @InjectRepository(Activity) private readonly activity: Repository<Activity>,
     private readonly projects: ProjectsService,
     private readonly access: WorkspaceAccessService,
+    @Inject(PUB_SUB) private readonly pubSub: PubSubPort,
   ) {}
+
+  /** Published after the transaction commits, so subscribers never see rolled-back data. */
+  private async publish(
+    type: TaskEventType,
+    projectId: string,
+    taskId: string,
+    actorId: string,
+    task: Task | null,
+  ) {
+    const event: TaskChangedEvent = { type, taskId, actorId, task };
+    await this.pubSub.publish(taskChangedTrigger(projectId), { taskChanged: event });
+  }
 
   /** Loads a task after checking the caller can access its project. */
   async requireTask(userId: string, taskId: string) {
@@ -60,7 +75,7 @@ export class TasksService {
     if (project.archived) throw Conflict('Cannot add tasks to an archived project');
     if (input.assigneeId) await this.assertAssignable(project.workspaceId, input.assigneeId);
 
-    return this.dataSource.transaction(async (tx) => {
+    const created = await this.dataSource.transaction(async (tx) => {
       const [rows] = (await tx.query(
         'UPDATE "projects" SET "taskCounter" = "taskCounter" + 1 WHERE "id" = $1 RETURNING "taskCounter"',
         [project.id],
@@ -90,6 +105,8 @@ export class TasksService {
       );
       return task;
     });
+    await this.publish(TaskEventType.CREATED, project.id, created.id, userId, created);
+    return created;
   }
 
   async update(userId: string, input: UpdateTaskInput) {
@@ -110,8 +127,8 @@ export class TasksService {
     }
     if (changes.length === 0) return task;
 
-    return this.dataSource.transaction(async (tx) => {
-      const saved = await tx.save(task);
+    const saved = await this.dataSource.transaction(async (tx) => {
+      const result = await tx.save(task);
       await tx.save(
         tx.create(Activity, {
           taskId: task.id,
@@ -120,8 +137,10 @@ export class TasksService {
           changes,
         }),
       );
-      return saved;
+      return result;
     });
+    await this.publish(TaskEventType.UPDATED, project.id, task.id, userId, saved);
+    return saved;
   }
 
   /** Reporters can delete their own tasks; admins can delete any task. */
@@ -134,6 +153,7 @@ export class TasksService {
       }
     }
     await this.tasks.delete({ id: task.id });
+    await this.publish(TaskEventType.DELETED, project.id, task.id, userId, null);
     return task;
   }
 
