@@ -7,6 +7,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import type { Request } from 'express';
 import { AuthModule } from './auth/auth.module.js';
 import { formatGraphQLError } from './common/format-error.js';
+import { ProjectsModule } from './projects/projects.module.js';
 import { validateEnv, type AppConfig } from './config/env.js';
 import { buildDataSourceOptions } from './database/typeorm.config.js';
 import { HealthController } from './health/health.controller.js';
@@ -39,6 +40,7 @@ import { WorkspacesModule } from './workspaces/workspaces.module.js';
     TerminusModule,
     AuthModule,
     WorkspacesModule,
+    ProjectsModule,
   ],
   controllers: [HealthController],
   providers: [SystemResolver],
