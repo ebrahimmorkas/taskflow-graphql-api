@@ -7,6 +7,7 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  type Relation,
 } from 'typeorm';
 import { Task } from '../tasks/task.entity.js';
 import { User } from '../users/user.entity.js';
@@ -25,14 +26,14 @@ export class Comment {
 
   @ManyToOne(() => Task, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'taskId' })
-  task: Task;
+  task: Relation<Task>;
 
   @Column({ type: 'uuid' })
   authorId: string;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'authorId' })
-  author: User;
+  author: Relation<User>;
 
   @Field(() => String)
   @Column({ type: 'text' })

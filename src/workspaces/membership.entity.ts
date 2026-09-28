@@ -7,6 +7,7 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  type Relation,
 } from 'typeorm';
 import { User } from '../users/user.entity.js';
 import { WorkspaceRole } from './workspace-role.enum.js';
@@ -26,7 +27,7 @@ export class Membership {
 
   @ManyToOne(() => Workspace, (w) => w.memberships, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'workspaceId' })
-  workspace: Workspace;
+  workspace: Relation<Workspace>;
 
   @Column({ type: 'uuid' })
   userId: string;
@@ -34,7 +35,7 @@ export class Membership {
   @Field(() => User)
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'userId' })
-  user: User;
+  user: Relation<User>;
 
   @Field(() => WorkspaceRole)
   @Column({ type: 'enum', enum: WorkspaceRole, enumName: 'workspace_role' })

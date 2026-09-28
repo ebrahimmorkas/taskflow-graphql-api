@@ -8,6 +8,7 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
+  type Relation,
 } from 'typeorm';
 import { Project } from '../projects/project.entity.js';
 import { User } from '../users/user.entity.js';
@@ -29,7 +30,7 @@ export class Task {
 
   @ManyToOne(() => Project, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'projectId' })
-  project: Project;
+  project: Relation<Project>;
 
   @Field(() => Int, { description: 'Sequential number within the project' })
   @Column({ type: 'int' })
@@ -61,14 +62,14 @@ export class Task {
 
   @ManyToOne(() => User, { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'assigneeId' })
-  assignee: User | null;
+  assignee: Relation<User> | null;
 
   @Column({ type: 'uuid' })
   reporterId: string;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'reporterId' })
-  reporter: User;
+  reporter: Relation<User>;
 
   @Field(() => String, { nullable: true, description: 'ISO date (YYYY-MM-DD)' })
   @Column({ type: 'date', nullable: true })
