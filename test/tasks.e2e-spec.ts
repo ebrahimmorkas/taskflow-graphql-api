@@ -139,7 +139,7 @@ describe('tasks', () => {
       'WEB-5',
     ]);
 
-    const invalid = await gql(app, LIST, { projectId, page: { first: 500 } }, owner.token);
+    const invalid = await gql(app, LIST, { projectId, page: { first: 0 } }, owner.token);
     expect(errorCode(invalid)).toBe('BAD_USER_INPUT');
   });
 
