@@ -1,5 +1,12 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql';
-import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  type Relation,
+} from 'typeorm';
 import { Membership } from './membership.entity.js';
 
 @ObjectType()
@@ -22,5 +29,5 @@ export class Workspace {
   createdAt: Date;
 
   @OneToMany(() => Membership, (m) => m.workspace)
-  memberships: Membership[];
+  memberships: Relation<Membership[]>;
 }

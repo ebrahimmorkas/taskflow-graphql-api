@@ -7,6 +7,7 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  type Relation,
 } from 'typeorm';
 import { User } from '../users/user.entity.js';
 import { ActivityType } from './task.enums.js';
@@ -38,14 +39,14 @@ export class Activity {
 
   @ManyToOne(() => Task, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'taskId' })
-  task: Task;
+  task: Relation<Task>;
 
   @Column({ type: 'uuid' })
   actorId: string;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'actorId' })
-  actor: User;
+  actor: Relation<User>;
 
   @Field(() => ActivityType)
   @Column({ type: 'enum', enum: ActivityType, enumName: 'activity_type' })
