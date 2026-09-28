@@ -1,4 +1,5 @@
 import { Field, ObjectType, Query, Resolver } from '@nestjs/graphql';
+import { Public } from '../auth/auth.decorators.js';
 import { ConfigService } from '@nestjs/config';
 import type { AppConfig } from '../config/env.js';
 
@@ -15,6 +16,7 @@ export class SystemInfo {
 export class SystemResolver {
   constructor(private readonly config: ConfigService<AppConfig, true>) {}
 
+  @Public()
   @Query(() => SystemInfo, { description: 'API version and runtime backends' })
   system(): SystemInfo {
     return {

@@ -5,6 +5,7 @@ import { GraphQLModule } from '@nestjs/graphql';
 import { TerminusModule } from '@nestjs/terminus';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import type { Request } from 'express';
+import { AuthModule } from './auth/auth.module.js';
 import { formatGraphQLError } from './common/format-error.js';
 import { validateEnv, type AppConfig } from './config/env.js';
 import { buildDataSourceOptions } from './database/typeorm.config.js';
@@ -35,6 +36,7 @@ import { SystemResolver } from './system/system.resolver.js';
       }),
     }),
     TerminusModule,
+    AuthModule,
   ],
   controllers: [HealthController],
   providers: [SystemResolver],
