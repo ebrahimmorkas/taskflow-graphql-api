@@ -31,7 +31,7 @@ describe('subscriptions', () => {
   });
   beforeEach(() => resetDb(app));
   afterEach(async () => {
-    await Promise.all(clients.splice(0).map((c) => c.dispose()));
+    for (const c of clients.splice(0)) await c.dispose();
   });
   afterAll(async () => {
     await app.close();

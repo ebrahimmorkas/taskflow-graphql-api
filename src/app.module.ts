@@ -13,6 +13,7 @@ import { AuthModule } from './auth/auth.module.js';
 import { AuthService } from './auth/auth.service.js';
 import { CommentsModule } from './comments/comments.module.js';
 import { formatGraphQLError } from './common/format-error.js';
+import { ComplexityPlugin } from './common/complexity.plugin.js';
 import { GqlPassthroughFilter } from './common/gql-exception.filter.js';
 import { createLoaders } from './common/loaders.js';
 import { validateEnv, type AppConfig } from './config/env.js';
@@ -86,6 +87,10 @@ type GraphQLWsContext = WsContext<Record<string, unknown> | undefined>;
     CommentsModule,
   ],
   controllers: [HealthController],
-  providers: [SystemResolver, { provide: APP_FILTER, useClass: GqlPassthroughFilter }],
+  providers: [
+    SystemResolver,
+    ComplexityPlugin,
+    { provide: APP_FILTER, useClass: GqlPassthroughFilter },
+  ],
 })
 export class AppModule {}

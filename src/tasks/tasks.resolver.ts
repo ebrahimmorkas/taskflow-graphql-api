@@ -45,7 +45,12 @@ export class TasksResolver {
     return this.pubSub.asyncIterableIterator<TaskChangedEvent>(taskChangedTrigger(projectId));
   }
 
-  @Query(() => TaskConnection, { description: 'Tasks in a project, newest first' })
+  @Query(() => TaskConnection, {
+    description: 'Tasks in a project, newest first',
+    // Cost scales with the requested page size.
+    complexity: ({ args, childComplexity }) =>
+      ((args.page as { first?: number } | undefined)?.first ?? 20) * childComplexity,
+  })
   tasks(
     @CurrentUser() user: AuthUser,
     @Args('projectId', { type: () => ID }) projectId: string,
