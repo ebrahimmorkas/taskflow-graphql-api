@@ -11,6 +11,7 @@ import { validateEnv, type AppConfig } from './config/env.js';
 import { buildDataSourceOptions } from './database/typeorm.config.js';
 import { HealthController } from './health/health.controller.js';
 import { SystemResolver } from './system/system.resolver.js';
+import { WorkspacesModule } from './workspaces/workspaces.module.js';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { SystemResolver } from './system/system.resolver.js';
     }),
     TerminusModule,
     AuthModule,
+    WorkspacesModule,
   ],
   controllers: [HealthController],
   providers: [SystemResolver],
