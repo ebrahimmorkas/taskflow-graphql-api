@@ -1,16 +1,22 @@
-# TaskFlow GraphQL API
+# TaskFlow GraphQL API + web app
 
 [![CI](https://github.com/ebrahimmorkas/taskflow-graphql-api/actions/workflows/ci.yml/badge.svg)](https://github.com/ebrahimmorkas/taskflow-graphql-api/actions/workflows/ci.yml)
 ![NestJS](https://img.shields.io/badge/NestJS-12-E0234E?logo=nestjs&logoColor=white)
 ![GraphQL](https://img.shields.io/badge/GraphQL-Apollo-E10098?logo=graphql&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-TypeORM-4169E1?logo=postgresql&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 A multi-tenant project management backend in the style of Jira or Linear, built with **NestJS**
 and **GraphQL**. Teams work in isolated workspaces with roles, and each workspace holds projects
 and tasks with human keys like `WEB-42`. Everything is audited in an activity log, and changes
 stream to clients in real time over GraphQL subscriptions.
+
+It ships with a **React + TypeScript web app** in [`client/`](client): a kanban board that
+updates live for everyone in the project.
+
+![Two users on the same board; a card moved by one appears for the other](docs/screenshots/live-board.png)
 
 ## Highlights
 
@@ -26,6 +32,40 @@ stream to clients in real time over GraphQL subscriptions.
 | **Audit trail**         | Each change stores field-level `from → to` diffs (jsonb) plus who made it.                                                                                                                             |
 | **Invariants**          | A workspace always keeps at least one owner, enforced under `SELECT … FOR UPDATE`.                                                                                                                     |
 | **Consistent errors**   | Every error carries a stable `extensions.code` (`NOT_FOUND`, `FORBIDDEN`, `BAD_USER_INPUT`, `QUERY_TOO_COMPLEX`…) and no stack traces leak.                                                            |
+
+## Web client
+
+| Kanban board                             | Task with live comments and activity log |
+| ---------------------------------------- | ---------------------------------------- |
+| ![Board](docs/screenshots/board.png)     | ![Task](docs/screenshots/task.png)       |
+| **Workspace members and roles**          | **Login with demo accounts**             |
+| ![Members](docs/screenshots/members.png) | ![Login](docs/screenshots/login.png)     |
+
+What it does:
+
+- **Board** with four columns. Move cards by drag-and-drop or with Alt+←/→ on the keyboard.
+  Filter by text, assignee and priority. Overdue dates are highlighted.
+- **Live for the whole team:** a `taskChanged` subscription updates every open board, with a
+  toast such as "Bob updated WEB-5". Comments on an open task arrive through `commentAdded`.
+- **Task dialog:** edit title, description, status, priority, assignee and due date; comment;
+  read the audit trail ("status: To do → In progress").
+- **Workspaces and projects:** switch workspace, create workspaces and projects, add members by
+  email, change roles, remove members. Controls follow the user's role.
+- One-click demo users (owner, admin, member), light and dark themes, responsive layout.
+
+How it is built:
+
+- **React 19 + TypeScript + Vite**, React Router, Tailwind CSS v4, React Hook Form + Zod.
+- **A 100-line GraphQL client** (`fetch` + typed results + the API's error codes) and
+  **`graphql-ws`** for subscriptions, authenticated through `connectionParams`. Caching is
+  handled by **TanStack Query**.
+- **Optimistic drag-and-drop:** the card moves immediately and rolls back if the mutation fails.
+  Subscription events and mutation results go through one pure reducer (`applyTaskEvent`), which
+  ignores events older than the cached copy, so out-of-order updates can't undo a newer change.
+- **Works within the API's query-complexity limit:** the board loads tasks in small pages and
+  follows the cursor until it has them all.
+- **Tests:** Vitest unit tests for the board reducer, filters, grouping and overdue logic. CI
+  lints, typechecks, tests and builds the client.
 
 ## Tech stack
 
@@ -87,6 +127,12 @@ npm install
 npm run migration:run
 npm run db:seed          # demo workspace; users alice/bob/carol@example.com, password Password123
 npm run start:dev        # http://localhost:3001/graphql (Apollo Sandbox)
+
+# Web client (proxies /graphql, including the subscription WebSocket, to :3001)
+npm run db:seed          # demo users alice/bob/carol@example.com, password Password123
+cd client
+npm install
+npm run dev              # http://localhost:5176
 ```
 
 ## Example operations
